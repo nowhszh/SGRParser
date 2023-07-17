@@ -1,0 +1,21 @@
+// 3/4 bit color
+[1;31mhello[0m
+[01;31mhello[0m
+[1;31;46mhello[0m
+[01;31;46mhello[0m
+[1;31;106mhello[0m
+[01;31;106mhello[0m
+[01;31;106mhello[m
+[0101m RED TEXT[0m
+// 8 bit color
+[38:5:124mhello[0m
+[38;5;124mhello[0m
+[1;38:5:124mhello[0m
+[1;38;5;124mhello[0m
+[1;38;5;124mhello[0m
+// 24 bit color
+[1;38:2:210:161:255mhello[0m
+[1;38;2;210;161;255mhello[0m
+[01;38:2:210:161:255mhello[0m
+[01;38;2;210;161;255mhello[0m
+[1;38:2:210:161:255;48:2:210:161:0mhello[0m

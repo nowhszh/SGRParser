@@ -1,0 +1,39 @@
+# Standard Qt style
+BasedOnStyle: webkit
+BreakBeforeBinaryOperators: All
+ColumnLimit: 100
+Standard: c++17
+IndentWidth: 4
+
+# Glogg-specific options
+PointerAlignment: Left
+SpacesInParentheses: true
+SpacesInSquareBrackets: true
+# DerivePointerAlignment: true
+AccessModifierOffset: -2
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true
+  AfterFunction: true
+
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+
+AlignConsecutiveMacros: Consecutive #clang-format 12
+
+AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
+
+AlignConsecutiveDeclarations:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: true
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowAllParametersOfDeclarationOnNextLine: true
+Cpp11BracedListStyle: false
+SpacesInContainerLiterals: true
+BreakConstructorInitializers: BeforeComma
+AlwaysBreakTemplateDeclarations: true
