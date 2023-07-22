@@ -9,7 +9,8 @@
 namespace ANSI {
 
 std::map<ColorTable::ColorE, SGRParseContext> ColorTable::colorTable {
-    { ColorTable::RESET_DEFAULT, { SGRParseContext::FRONT_AND_BACK, {} } },
+    { ColorTable::RESET_DEFAULT,
+        { SGRParseContext::FRONT_AND_BACK, {}, SGRParseContext::STATE_DEFAULT_COLOR } },
 
     // 7bit front color
     { ColorTable::F_BLACK, { SGRParseContext::FRONT_COLOR, { 1, 1, 1 } } },
@@ -77,6 +78,7 @@ std::pair<bool, uint8_t> base10ToU8( const std::string_view& num )
     }
 
     if ( value > std::numeric_limits<uint8_t>::max() ) {
+        // TODO: not u8, continue, difference convert error
         return { false, {} };
     }
     return { has, static_cast<uint8_t>( value ) };
@@ -163,7 +165,32 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color( const std::string_view
         return ReturnVal::ERROR_AND_BREAK;
     }
 
-    // TODO: set 8-bit color
+    // Standard colors
+    if ( value >= 0 && value <= 7 ) {
+        *this = ColorTable::index( ColorTable::ColorE( ColorTable::F_BLACK + value ) );
+    }
+    // High-intensity colors
+    else if ( value >= 8 && value <= 15 ) {
+        *this = ColorTable::index( ColorTable::ColorE( ColorTable::F_BRIGHT_BLACK + value ) );
+    }
+    // Grayscale colors
+    else if ( value >= 232 && value <= 255 ) {
+        auto colorValue = uint8_t( ( value - 232 ) * 10 + 8 );
+        color_          = { colorValue, colorValue, colorValue };
+        state_          = ParseState::STATE_SUCCESS;
+    }
+    // 216 colors
+    else {
+        constexpr uint8_t colorValue[] { 0, 95, 135, 175, 215, 255 };
+        auto              val = value - 16;
+        auto              x   = val / 36;
+        val                   = val % 36;
+        auto y                = val / 6;
+        auto z                = val % 6;
+        color_                = { colorValue[ x ], colorValue[ y ], colorValue[ z ] };
+        state_                = ParseState::STATE_SUCCESS;
+    }
+
     return ReturnVal::SUCCESS;
 }
 

@@ -41,24 +41,29 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
     };
 
     while ( pos != std::string_view::npos ) {
-        std::string_view           num { seqView.data(), pos };
         SGRParseContext::ReturnVal parseRet = SGRParseContext::ReturnVal::SUCCESS;
 
         switch ( ctx.state() ) {
         case SGRParseContext::STATE_WAIT_FIRST_PARAMETER: {
+            std::string_view num { seqView.data(), pos };
             parseRet = ctx.setFirstParameter( num );
         } break;
         case SGRParseContext::STATE_WAIT_VERSION: {
+            next();
+            std::string_view num { seqView.data(), pos };
             parseRet = ctx.setColorVersion( num );
         } break;
         case SGRParseContext::STATE_WAIT_BIT_8_ARGS: {
+            next();
+            std::string_view num { seqView.data(), pos };
             parseRet = ctx.setBit8Color( num );
         } break;
         case SGRParseContext::STATE_WAIT_BIT_24_ARGS_R:
         case SGRParseContext::STATE_WAIT_BIT_24_ARGS_G:
         case SGRParseContext::STATE_WAIT_BIT_24_ARGS_B: {
-            parseRet = ctx.setBit24Color( num );
             next();
+            std::string_view num { seqView.data(), pos };
+            parseRet = ctx.setBit24Color( num );
         } break;
         case SGRParseContext::STATE_SUCCESS: {
             ret.first = Return::PARSE_SUCC;
