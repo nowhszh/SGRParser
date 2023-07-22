@@ -11,8 +11,6 @@
 
 namespace ANSI {
 
-std::pair<bool, uint8_t> base10ToU8( const std::string_view& num );
-
 class ColorTable;
 
 class SGRParseContext {

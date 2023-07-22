@@ -61,7 +61,13 @@ std::map<ColorTable::ColorE, SGRParseContext> ColorTable::colorTable {
     { ColorTable::B_BRIGHT_WHITE, { SGRParseContext::BACK_COLOR, { 255, 255, 255 } } },
 };
 
-std::pair<bool, uint8_t> base10ToU8( const std::string_view& num )
+enum class ConvertRet {
+    NOT_U8  = -2,
+    NOT_NUM = -1,
+    SUCCESS = 0,
+};
+
+std::pair<ConvertRet, uint8_t> base10ToU8( const std::string_view& num )
 {
     bool has   = false;
     int  value = 0;
@@ -77,11 +83,13 @@ std::pair<bool, uint8_t> base10ToU8( const std::string_view& num )
         has = true;
     }
 
-    if ( value > std::numeric_limits<uint8_t>::max() ) {
-        // TODO: not u8, continue, difference convert error
-        return { false, {} };
+    if ( has ) {
+        if ( value > std::numeric_limits<uint8_t>::max() ) {
+            return { ConvertRet::NOT_U8, {} };
+        }
+        return { ConvertRet::SUCCESS, static_cast<uint8_t>( value ) };
     }
-    return { has, static_cast<uint8_t>( value ) };
+    return { ConvertRet::NOT_NUM, {} };
 }
 
 SGRParseContext::SGRParseContext()
@@ -107,11 +115,17 @@ SGRParseContext::ReturnVal SGRParseContext::setFirstParameter( const std::string
         state_ = STATE_DEFAULT_COLOR;
         return ReturnVal::SUCCESS;
     }
-    // convert to number, error parameter will break parse, and keep current color
-    auto [ ok, value ] = base10ToU8( num );
-    if ( !ok ) {
+
+    auto [ ret, value ] = base10ToU8( num );
+    // not number will break parse, and keep current color
+    if ( ret == ConvertRet::NOT_NUM ) {
         state_ = STATE_CURRENT_COLOR;
         return ReturnVal::ERROR_AND_BREAK;
+    }
+    // not u8 will parse continue, and keep current color
+    else if ( ret == ConvertRet::NOT_U8 ) {
+        state_ = STATE_CURRENT_COLOR;
+        return ReturnVal::ERROR_AND_CONTINUE;
     }
 
     *this = ColorTable::index( ColorTable::ColorE( value ) );
@@ -128,11 +142,16 @@ SGRParseContext::ReturnVal SGRParseContext::setColorVersion( const std::string_v
         return ReturnVal::ERROR_AND_CONTINUE;
     }
 
-    // convert to number, error parameter will break parse, and keep current color
-    auto [ ok, value ] = base10ToU8( num );
-    if ( !ok ) {
+    auto [ ret, value ] = base10ToU8( num );
+    // not number will break parse, and keep current color
+    if ( ret == ConvertRet::NOT_NUM ) {
         state_ = STATE_CURRENT_COLOR;
         return ReturnVal::ERROR_AND_BREAK;
+    }
+    // not u8 will parse continue, and keep current color
+    else if ( ret == ConvertRet::NOT_U8 ) {
+        state_ = STATE_CURRENT_COLOR;
+        return ReturnVal::ERROR_AND_CONTINUE;
     }
 
     // update state
@@ -158,11 +177,16 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color( const std::string_view
         return ReturnVal::ERROR_AND_CONTINUE;
     }
 
-    // convert to number, error parameter will break parse, and keep current color
-    auto [ ok, value ] = base10ToU8( num );
-    if ( !ok ) {
+    auto [ ret, value ] = base10ToU8( num );
+    // not number will break parse, and keep current color
+    if ( ret == ConvertRet::NOT_NUM ) {
         state_ = STATE_CURRENT_COLOR;
         return ReturnVal::ERROR_AND_BREAK;
+    }
+    // not u8 will parse continue, and keep current color
+    else if ( ret == ConvertRet::NOT_U8 ) {
+        state_ = STATE_CURRENT_COLOR;
+        return ReturnVal::ERROR_AND_CONTINUE;
     }
 
     // Standard colors
@@ -182,13 +206,11 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color( const std::string_view
     // 216 colors
     else {
         constexpr uint8_t colorValue[] { 0, 95, 135, 175, 215, 255 };
-        auto              val = value - 16;
-        auto              x   = val / 36;
-        val                   = val % 36;
-        auto y                = val / 6;
-        auto z                = val % 6;
-        color_                = { colorValue[ x ], colorValue[ y ], colorValue[ z ] };
-        state_                = ParseState::STATE_SUCCESS;
+        auto              val       = value - 16;
+        auto              remainder = val % 36;
+        color_
+            = { colorValue[ val / 36 ], colorValue[ remainder / 6 ], colorValue[ remainder % 6 ] };
+        state_ = ParseState::STATE_SUCCESS;
     }
 
     return ReturnVal::SUCCESS;
@@ -224,11 +246,16 @@ SGRParseContext::ReturnVal SGRParseContext::setBit24Color( const std::string_vie
 
     // bit24Valid is false, no need to convert num and set color
     if ( bit24Valid ) {
-        // convert to number, error parameter will break parse, and keep current color
-        auto [ ok, value ] = base10ToU8( num );
-        if ( !ok ) {
+        auto [ ret, value ] = base10ToU8( num );
+        // not number will break parse, and keep current color
+        if ( ret == ConvertRet::NOT_NUM ) {
             state_ = STATE_CURRENT_COLOR;
             return ReturnVal::ERROR_AND_BREAK;
+        }
+        // not u8 will parse continue, and keep current color
+        else if ( ret == ConvertRet::NOT_U8 ) {
+            state_ = STATE_CURRENT_COLOR;
+            return ReturnVal::ERROR_AND_CONTINUE;
         }
         // set color
         *colorVal = value;

@@ -40,6 +40,7 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
         pos = seqView.find_first_of( ";:m" );
     };
 
+    // TODO: optimize
     while ( pos != std::string_view::npos ) {
         SGRParseContext::ReturnVal parseRet = SGRParseContext::ReturnVal::SUCCESS;
 
