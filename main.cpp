@@ -19,20 +19,23 @@ using namespace ANSI;
 static QString           pattern { "\\x1B\\[([0-9]{0,4}((;|:)[0-9]{1,3})*)?[mK]" };
 // test ansi sequence
 std::vector<std::string> vec {
+    "hello",
     // 7-bit colors
-    { "\033[31mhello\033[0m" },
-    { "\033[0;32mhello\033[0m" },
-    { "\033[1;33mhello\033[0m" },
-    { "\033[31;42mhello\033[0m" },
-    { "\033[1;32;43mhello\033[0m" },
-    { "\033[1;34;40mhello" },
-    { "hell\033[31;43mo\033[0m" },
-    { "hello" },
+    "\033[31mhello\033[0m",
+    "\033[0;32mhello\033[0m",
+    "\033[1;33mhello\033[0m",
+    "\033[31;42mhello\033[0m",
+    "\033[1;32;43mhello\033[0m",
+    "\033[1;34;40mhello",
+    "hell\033[31;43mo\033[0m",
     // 8-bit colors
-    { "\033[38;5;160mhello\033[m" },
-    { "\033[38;5;160mhello\033[m" },
+    "\033[38;5;160mhello\033[m",
+    "\033[0;38;5;160;48;5;19mhello\033[m",
+    "\033[1;38;5;36mhello\033[m",
     // 24-bit colors
-    { "\033[38;2;32;0;255mhello\033[m" },
+    "\033[38;2;215;0;0mhello\033[m",
+    "\033[0;38;2;215;0;0;48;2;95;135;175mhello\033[m",
+    "\033[1;38;2;95;135;175;48;2;215;0;0mhello\033[m",
 };
 
 QDebug& operator<<( QDebug& o, const ANSI::RGB& rgb )
