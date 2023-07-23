@@ -9,7 +9,6 @@
 namespace ANSI {
 
 using ParseResult = SGRParseContext::ParseResult;
-using ParseState  = SGRParseContext::ParseState;
 using ColorIndex  = ColorTable::ColorIndex;
 
 // reference: https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
@@ -29,7 +28,10 @@ std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
 
     // custom front color
     { ColorIndex::F_CUSTOM_COLOR,
-        { ParseResult::RESULT_FRONT_COLOR, {}, ParseState::STATE_WAIT_VERSION } },
+        { ParseResult::RESULT_FRONT_COLOR, {}, SGRParseContext::ParseState::STATE_WAIT_VERSION } },
+
+    // default front color
+    { ColorIndex::F_DEFAULT_COLOR, { ParseResult::RESULT_DEFAULT_FRONT_COLOR, {} } },
 
     // 3/4-bit back color
     { ColorIndex::B_BLACK, { ParseResult::RESULT_BACK_COLOR, { 1, 1, 1 } } },
@@ -43,7 +45,10 @@ std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
 
     // custom back color
     { ColorIndex::B_CUSTOM_COLOR,
-        { ParseResult::RESULT_BACK_COLOR, {}, ParseState::STATE_WAIT_VERSION } },
+        { ParseResult::RESULT_BACK_COLOR, {}, SGRParseContext::ParseState::STATE_WAIT_VERSION } },
+
+    // default front color
+    { ColorIndex::B_DEFAULT_COLOR, { ParseResult::RESULT_DEFAULT_BACK_COLOR, {} } },
 
     // 3/4-bit front bright color
     { ColorIndex::F_BRIGHT_BLACK, { ParseResult::RESULT_FRONT_COLOR, { 128, 128, 128 } } },

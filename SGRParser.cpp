@@ -37,7 +37,7 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
     using ParseResult = SGRParseContext::ParseResult;
 
     // TODO: optimize
-    while ( !seqView.empty()) {
+    while ( !seqView.empty() ) {
         if ( parseRet == SGRParseContext::ReturnVal::RETURN_ERROR_BREAK ) {
             ret.first = Return::PARSE_ERROR;
             break;
@@ -48,10 +48,16 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
         switch ( ctx.result() ) {
         case ParseResult::RESULT_FRONT_COLOR: {
             ret.first        = Return::PARSE_SUCC;
-            ret.second.front = ctx.rgb();
+            ret.second.front = ctx.color();
         } break;
         case ParseResult::RESULT_BACK_COLOR: {
-            ret.second.back = ctx.rgb();
+            ret.second.back = ctx.color();
+        } break;
+        case ParseResult::RESULT_DEFAULT_FRONT_COLOR: {
+            ret.second.front = defaultColor_.front;
+        } break;
+        case ParseResult::RESULT_DEFAULT_BACK_COLOR: {
+            ret.second.back = defaultColor_.back;
         } break;
         case ParseResult::RESULT_DEFAULT_COLOR: {
             ret.second = defaultColor_;
@@ -59,7 +65,6 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
         case ParseResult::RESULT_CURRENT_COLOR: {
             ret.second = currentColor;
         } break;
-            // TODO: check result
         default: {
             return { Return::PARSE_ERROR, currentColor };
         }

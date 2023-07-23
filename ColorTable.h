@@ -17,11 +17,6 @@ class SGRParseContext {
     friend class ColorTable;
 
   public:
-    enum ColorVersion : uint8_t {
-        BIT_8  = 5,
-        BIT_24 = 2,
-    };
-
     enum ReturnVal {
         RETURN_SUCCESS_BREAK,
         RETURN_SUCCESS_CONTINUE,
@@ -31,17 +26,22 @@ class SGRParseContext {
     };
 
     enum ParseResult {
-        //        RESULT_CODE_ERROR = -1,
         RESULT_UNKNOWN_COLOR,
         RESULT_FRONT_COLOR,
         RESULT_BACK_COLOR,
+        RESULT_DEFAULT_FRONT_COLOR,
+        RESULT_DEFAULT_BACK_COLOR,
         RESULT_DEFAULT_COLOR,
         RESULT_CURRENT_COLOR,
     };
 
-    enum ParseState {
-        //        STATE_HAS_RESULT,
+  private:
+    enum ColorVersion : uint8_t {
+        BIT_8  = 5,
+        BIT_24 = 2,
+    };
 
+    enum ParseState {
         STATE_WAIT_FIRST_PARAMETER,
         STATE_WAIT_VERSION,
         STATE_WAIT_BIT_8_ARGS,
@@ -65,17 +65,12 @@ class SGRParseContext {
         new ( this ) SGRParseContext();
     }
 
-    inline ParseState state()
-    {
-        return state_;
-    }
-
     inline ParseResult result()
     {
         return result_;
     }
 
-    inline RGB rgb()
+    inline RGB color()
     {
         return color_;
     }
@@ -108,7 +103,9 @@ class ColorTable {
         F_WHITE   = 37,
 
         // custom front color
-        F_CUSTOM_COLOR = 38,
+        F_CUSTOM_COLOR  = 38,
+        // default front color
+        F_DEFAULT_COLOR = 39,
 
         // 3/4-bit back color
         B_BLACK   = 40,
@@ -121,7 +118,9 @@ class ColorTable {
         B_WHITE   = 47,
 
         // custom back color
-        B_CUSTOM_COLOR = 48,
+        B_CUSTOM_COLOR  = 48,
+        // default back color
+        B_DEFAULT_COLOR = 49,
 
         // 3/4-bit front bright color
         F_BRIGHT_BLACK   = 90,
