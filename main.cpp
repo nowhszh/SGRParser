@@ -20,7 +20,7 @@ static QString           pattern { "\\x1B\\[([0-9]{0,4}((;|:)[0-9]{1,3})*)?[mK]"
 // test ansi sequence
 std::vector<std::string> vec {
     "hello",
-    // 7-bit colors
+    // 3/4-bit colors
     "\033[31mhello\033[0m",
     "\033[0;32mhello\033[0m",
     "\033[1;33mhello\033[0m",

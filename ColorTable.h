@@ -17,29 +17,30 @@ class SGRParseContext {
     friend class ColorTable;
 
   public:
-    enum ColorPosition : uint8_t {
-        UNKNOWN,
-        FRONT_COLOR,
-        BACK_COLOR,
-        FRONT_AND_BACK,
-    };
-
     enum ColorVersion : uint8_t {
         BIT_8  = 5,
         BIT_24 = 2,
     };
 
     enum ReturnVal {
-        SUCCESS,
-        ERROR_AND_CONTINUE,
-        ERROR_AND_BREAK,
+        RETURN_SUCCESS_BREAK,
+        RETURN_SUCCESS_CONTINUE,
+
+        RETURN_ERROR_BREAK,
+        RETURN_ERROR_CONTINUE,
+    };
+
+    enum ParseResult {
+        //        RESULT_CODE_ERROR = -1,
+        RESULT_UNKNOWN_COLOR,
+        RESULT_FRONT_COLOR,
+        RESULT_BACK_COLOR,
+        RESULT_DEFAULT_COLOR,
+        RESULT_CURRENT_COLOR,
     };
 
     enum ParseState {
-        STATE_CODE_ERROR = -1,
-        STATE_SUCCESS,
-        STATE_DEFAULT_COLOR,
-        STATE_CURRENT_COLOR,
+        //        STATE_HAS_RESULT,
 
         STATE_WAIT_FIRST_PARAMETER,
         STATE_WAIT_VERSION,
@@ -51,6 +52,8 @@ class SGRParseContext {
 
   public:
     explicit SGRParseContext();
+
+    ReturnVal parse( std::string_view& seqs );
 
     ReturnVal setFirstParameter( const std::string_view& num );
     ReturnVal setColorVersion( const std::string_view& num );
@@ -67,9 +70,9 @@ class SGRParseContext {
         return state_;
     }
 
-    inline ColorPosition position()
+    inline ParseResult result()
     {
-        return position_;
+        return result_;
     }
 
     inline RGB rgb()
@@ -78,21 +81,23 @@ class SGRParseContext {
     }
 
   private:
-    SGRParseContext( ColorPosition t, RGB rgb, ParseState s = STATE_SUCCESS );
+    SGRParseContext( ParseResult result, RGB rgb, ParseState s = STATE_WAIT_FIRST_PARAMETER );
+
+    static ReturnVal stringToParameter( const std::string_view& num, uint8_t& val );
 
   private:
-    ColorPosition position_;
-    ParseState    state_;
-    RGB           color_;
-    bool          bit24Valid;
+    ParseResult result_;
+    ParseState  state_;
+    RGB         color_;
+    bool        bit24Valid_;
 };
 
 class ColorTable {
   public:
-    enum ColorE : uint8_t {
+    enum ColorIndex : uint8_t {
         RESET_DEFAULT = 0,
 
-        // 7bit front color
+        // 3/4-bit front color
         F_BLACK   = 30,
         F_RED     = 31,
         F_GREEN   = 32,
@@ -105,7 +110,7 @@ class ColorTable {
         // custom front color
         F_CUSTOM_COLOR = 38,
 
-        // 7bit back color
+        // 3/4-bit back color
         B_BLACK   = 40,
         B_RED     = 41,
         B_GREEN   = 42,
@@ -118,7 +123,7 @@ class ColorTable {
         // custom back color
         B_CUSTOM_COLOR = 48,
 
-        // 7bit front bright color
+        // 3/4-bit front bright color
         F_BRIGHT_BLACK   = 90,
         F_BRIGHT_RED     = 91,
         F_BRIGHT_GREEN   = 92,
@@ -128,7 +133,7 @@ class ColorTable {
         F_BRIGHT_CYAN    = 96,
         F_BRIGHT_WHITE   = 97,
 
-        // 7bit back bright color
+        // 3/4-bit back bright color
         B_BRIGHT_BLACK   = 100,
         B_BRIGHT_RED     = 101,
         B_BRIGHT_GREEN   = 102,
@@ -140,14 +145,15 @@ class ColorTable {
     };
 
   private:
-    static std::map<ColorE, SGRParseContext> colorTable;
+    static std::map<ColorIndex, SGRParseContext> colorTable;
 
   public:
-    static SGRParseContext index( ColorE num )
+    static SGRParseContext index( ColorIndex num )
     {
         auto ret = colorTable.find( num );
         if ( ret == colorTable.end() ) {
-            return { SGRParseContext::UNKNOWN, {}, SGRParseContext::STATE_WAIT_FIRST_PARAMETER };
+            return { SGRParseContext::ParseResult::RESULT_UNKNOWN_COLOR, {},
+                SGRParseContext::STATE_WAIT_FIRST_PARAMETER };
         }
         return ret->second;
     }

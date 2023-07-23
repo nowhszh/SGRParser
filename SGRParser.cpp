@@ -32,83 +32,40 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
 
     SGRParseReturn  ret { Return::PARSE_SUCC, currentColor };
     SGRParseContext ctx {};
-    auto            pos        = seqView.find_first_of( ";:m" );
-    bool            need_break = false;
+    auto            parseRet = SGRParseContext::ReturnVal::RETURN_SUCCESS_BREAK;
 
-    auto next = [ &pos, &seqView ]() {
-        seqView.remove_prefix( pos + 1 );
-        pos = seqView.find_first_of( ";:m" );
-    };
+    using ParseResult = SGRParseContext::ParseResult;
 
     // TODO: optimize
-    while ( pos != std::string_view::npos ) {
-        SGRParseContext::ReturnVal parseRet = SGRParseContext::ReturnVal::SUCCESS;
+    while ( !seqView.empty()) {
+        if ( parseRet == SGRParseContext::ReturnVal::RETURN_ERROR_BREAK ) {
+            ret.first = Return::PARSE_ERROR;
+            break;
+        }
 
-        switch ( ctx.state() ) {
-        case SGRParseContext::STATE_WAIT_FIRST_PARAMETER: {
-            std::string_view num { seqView.data(), pos };
-            parseRet = ctx.setFirstParameter( num );
-        } break;
-        case SGRParseContext::STATE_WAIT_VERSION: {
-            next();
-            std::string_view num { seqView.data(), pos };
-            parseRet = ctx.setColorVersion( num );
-        } break;
-        case SGRParseContext::STATE_WAIT_BIT_8_ARGS: {
-            next();
-            std::string_view num { seqView.data(), pos };
-            parseRet = ctx.setBit8Color( num );
-        } break;
-        case SGRParseContext::STATE_WAIT_BIT_24_ARGS_R:
-        case SGRParseContext::STATE_WAIT_BIT_24_ARGS_G:
-        case SGRParseContext::STATE_WAIT_BIT_24_ARGS_B: {
-            next();
-            std::string_view num { seqView.data(), pos };
-            parseRet = ctx.setBit24Color( num );
-        } break;
-        case SGRParseContext::STATE_SUCCESS: {
-            ret.first = Return::PARSE_SUCC;
-            if ( ctx.position() == SGRParseContext::FRONT_COLOR ) {
-                ret.second.front = ctx.rgb();
-            }
-            else if ( ctx.position() == SGRParseContext::BACK_COLOR ) {
-                ret.second.back = ctx.rgb();
-            }
-            else {
-                assert( false );
-            }
+        parseRet = ctx.parse( seqView );
 
-            next();
-            ctx.reset();
+        switch ( ctx.result() ) {
+        case ParseResult::RESULT_FRONT_COLOR: {
+            ret.first        = Return::PARSE_SUCC;
+            ret.second.front = ctx.rgb();
         } break;
-        case SGRParseContext::STATE_DEFAULT_COLOR: {
+        case ParseResult::RESULT_BACK_COLOR: {
+            ret.second.back = ctx.rgb();
+        } break;
+        case ParseResult::RESULT_DEFAULT_COLOR: {
             ret.second = defaultColor_;
-            next();
-            ctx.reset();
         } break;
-
-        case SGRParseContext::STATE_CURRENT_COLOR: {
+        case ParseResult::RESULT_CURRENT_COLOR: {
             ret.second = currentColor;
-            next();
-            ctx.reset();
         } break;
+            // TODO: check result
         default: {
             return { Return::PARSE_ERROR, currentColor };
         }
         }
 
-        if ( need_break ) {
-            break;
-        }
-
-        if ( parseRet == SGRParseContext::ReturnVal::ERROR_AND_BREAK ) {
-            ret.first  = Return::PARSE_ERROR;
-            need_break = true;
-            break;
-        }
-        else if ( parseRet == SGRParseContext::ReturnVal::ERROR_AND_CONTINUE ) {
-            next();
-        }
+        ctx.reset();
     }
 
     return ret;
