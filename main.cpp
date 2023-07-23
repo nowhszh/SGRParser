@@ -11,7 +11,7 @@
 #include <regex>
 #include <string>
 
-#include "AnsiColor.h"
+#include "ANSI.h"
 #include "SGRParser.h"
 
 using namespace ANSI;

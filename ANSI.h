@@ -88,22 +88,9 @@ enum CSIFinalBytes {
     CSIFinalExperimentalEnd   = CSIFinalEnd,
 };
 
-struct RGB {
-    uint8_t r, g, b;
-};
-
 enum class Return {
     PARSE_ERROR = -1,
     PARSE_SUCC  = 0,
-};
-
-struct Color {
-    RGB front;
-    RGB back;
-};
-
-struct TextAttribute {
-    Color color;
 };
 
 } // namespace ANSI
