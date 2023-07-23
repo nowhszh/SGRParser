@@ -11,7 +11,6 @@
 #include <regex>
 #include <string>
 
-#include "ANSI.h"
 #include "SGRParser.h"
 
 using namespace ANSI;

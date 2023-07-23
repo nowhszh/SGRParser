@@ -5,8 +5,6 @@
 
 #include <cstdint>
 
-#include <QColor>
-
 namespace ANSI {
 
 enum SequenceStartCnt {

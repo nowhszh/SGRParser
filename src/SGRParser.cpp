@@ -3,6 +3,10 @@
 //
 
 #include "SGRParser.h"
+
+#include <cassert>
+#include <limits>
+
 #include "ANSI.h"
 
 namespace ANSI {
