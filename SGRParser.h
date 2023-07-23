@@ -12,16 +12,22 @@ namespace ANSI {
 
 class SGRParser {
   public:
-    using SGRParseReturn = std::pair<Return, Color>;
+    using SGRParseReturn = std::pair<Return, TextAttribute>;
 
   public:
-    explicit SGRParser( const Color& defaultColor );
+    explicit SGRParser( const TextAttribute& defaultTextAttr );
     ~SGRParser() = default;
 
-    SGRParseReturn parseSGRSequence( const Color& currentColor, const std::string& sequence );
+    SGRParser( const SGRParser& )            = delete;
+    SGRParser( SGRParser&& )                 = delete;
+    SGRParser& operator=( const SGRParser& ) = delete;
+    SGRParser& operator=( SGRParser&& )      = delete;
+
+    SGRParseReturn parseSGRSequence(
+        const TextAttribute& currentTextAttr, const std::string& sequence );
 
   private:
-    Color defaultColor_;
+    TextAttribute defaultTextAttr_;
 };
 
 }

@@ -102,4 +102,8 @@ struct Color {
     RGB back;
 };
 
+struct TextAttribute {
+    Color color;
+};
+
 } // namespace ANSI

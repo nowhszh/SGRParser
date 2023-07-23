@@ -12,9 +12,11 @@ using ParseResult = SGRParseContext::ParseResult;
 using ColorIndex  = ColorTable::ColorIndex;
 
 // reference: https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
+// {index, {result, color, state}}
+// If it is a valid color, state must be STATE_WAIT_FIRST_PARAMETER
 std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
     // reset to default
-    { ColorIndex::RESET_DEFAULT, { ParseResult::RESULT_DEFAULT_COLOR, {} } },
+    { ColorIndex::RESET_DEFAULT, { ParseResult::RESULT_DEFAULT_TEXT_ATTR, {} } },
 
     // 3/4-bit front color
     { ColorIndex::F_BLACK, { ParseResult::RESULT_FRONT_COLOR, { 1, 1, 1 } } },
@@ -103,7 +105,7 @@ std::pair<ConvertRet, uint8_t> base10ToU8( const std::string_view& num )
 }
 
 SGRParseContext::SGRParseContext()
-    : result_( ParseResult::RESULT_CURRENT_COLOR )
+    : result_( ParseResult::RESULT_CURRENT_TEXT_ATTR )
     , state_( STATE_WAIT_FIRST_PARAMETER )
     , color_()
     , bit24Valid_( true )
@@ -119,26 +121,28 @@ SGRParseContext::SGRParseContext( ParseResult result, RGB rgb, ParseState s )
 }
 
 SGRParseContext::ReturnVal SGRParseContext::stringToParameter(
-    const std::string_view& num, uint8_t& val )
+    const std::string_view& in, uint8_t& out )
 {
-    auto [ ret, value ] = base10ToU8( num );
-    // not number parse break, keep current color
+    auto [ ret, value ] = base10ToU8( in );
+    // not number parse break, keep current text attribute
     if ( ret == ConvertRet::NOT_NUM ) {
+        result_ = ParseResult ::RESULT_CURRENT_TEXT_ATTR;
         return ReturnVal::RETURN_ERROR_BREAK;
     }
-    // not u8 parse continue, use last parse color
+    // not u8 parse continue, use last parse result
     else if ( ret == ConvertRet::NOT_U8 ) {
+        state_ = ParseState::STATE_WAIT_FIRST_PARAMETER;
         return ReturnVal::RETURN_ERROR_CONTINUE;
     }
-    val = value;
+    out = value;
     return SGRParseContext::RETURN_SUCCESS_CONTINUE;
 }
 
 SGRParseContext::ReturnVal SGRParseContext::setFirstParameter( const std::string_view& num )
 {
-    // in first parameter, empty parameter default value is 0, 0 will set default color
+    // in the first parameter, the default value is 0, which will reset all text attributes.
     if ( num.empty() ) {
-        result_ = ParseResult::RESULT_DEFAULT_COLOR;
+        result_ = ParseResult::RESULT_DEFAULT_TEXT_ATTR;
         return ReturnVal::RETURN_SUCCESS_BREAK;
     }
 
@@ -150,7 +154,7 @@ SGRParseContext::ReturnVal SGRParseContext::setFirstParameter( const std::string
 
     *this = ColorTable::index( ColorTable::ColorIndex( value ) );
     // UNKNOWN is not support, so continue
-    if ( result_ == ParseResult::RESULT_UNKNOWN_COLOR ) {
+    if ( result_ == ParseResult::RESULT_UNSUPPORTED_ATTR ) {
         return ReturnVal::RETURN_ERROR_CONTINUE;
     }
 
@@ -182,7 +186,8 @@ SGRParseContext::ReturnVal SGRParseContext::setColorVersion( const std::string_v
         state_ = STATE_WAIT_BIT_24_ARGS_R;
     }
     else {
-        // invalid value will reset parse state, and use last color
+        // invalid value will reset parse state, and use last parse result
+        state_ = STATE_WAIT_FIRST_PARAMETER;
         return ReturnVal::RETURN_ERROR_CONTINUE;
     }
 
@@ -274,7 +279,6 @@ SGRParseContext::ReturnVal SGRParseContext::setBit24Color( const std::string_vie
         if ( ret != ReturnVal::RETURN_SUCCESS_CONTINUE ) {
             return ret;
         }
-        // set color
         *colorVal = value;
 
         // if state is STATE_WAIT_FIRST_PARAMETER, exist color, so break
@@ -291,7 +295,7 @@ SGRParseContext::ReturnVal SGRParseContext::setBit24Color( const std::string_vie
 SGRParseContext::ReturnVal SGRParseContext::parse( std::string_view& seqs )
 {
     auto      pos = seqs.find_first_of( ";:m" );
-    ReturnVal parseRet { ReturnVal::RETURN_SUCCESS_CONTINUE };
+    ReturnVal parseRet;
 
     while ( pos != std::string_view::npos ) {
         std::string_view num { seqs.data(), pos };
@@ -311,13 +315,12 @@ SGRParseContext::ReturnVal SGRParseContext::parse( std::string_view& seqs )
         case ParseState::STATE_WAIT_BIT_24_ARGS_B:
             parseRet = setBit24Color( num );
         } break;
-        default:
-            break;
         }
 
         seqs.remove_prefix( pos + 1 );
         pos = seqs.find_first_of( ";:m" );
 
+        // if return BREAK, return current parse result
         if ( ReturnVal::RETURN_SUCCESS_BREAK == parseRet
             || ReturnVal::RETURN_ERROR_BREAK == parseRet ) {
             break;

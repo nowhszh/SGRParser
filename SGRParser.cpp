@@ -8,69 +8,64 @@
 
 namespace ANSI {
 
-SGRParser::SGRParser( const Color& defaultColor )
-    : defaultColor_ { defaultColor }
+SGRParser::SGRParser( const TextAttribute& defaultTextAttr )
+    : defaultTextAttr_ { defaultTextAttr }
 {
 }
 
 SGRParser::SGRParseReturn SGRParser::parseSGRSequence(
-    const Color& currentColor, const std::string& sequence )
+    const TextAttribute& currentTextAttr, const std::string& sequence )
 {
     // sequence start byte + CSI final byte size error, return current color
     if ( sequence.size() < SequenceStartCnt::HEAD_CNT + 1 ) {
-        return { Return::PARSE_ERROR, currentColor };
+        return { Return::PARSE_ERROR, currentTextAttr };
     }
     // check sequence format
     if ( sequence[ 0 ] != SequenceFirst::EXC || sequence[ 1 ] != SequenceSecond::CSI
         || sequence.back() != CSIFinalBytes::SGR ) {
-        return { Return::PARSE_ERROR, currentColor };
+        return { Return::PARSE_ERROR, currentTextAttr };
     }
-
     // remove sequence start byte
     std::string_view seqView( sequence );
     seqView.remove_prefix( HEAD_CNT );
 
-    SGRParseReturn  ret { Return::PARSE_SUCC, currentColor };
-    SGRParseContext ctx {};
-    auto            parseRet = SGRParseContext::ReturnVal::RETURN_SUCCESS_BREAK;
+    SGRParseContext            ctx {};
+    SGRParseContext::ReturnVal ctxRet;
+    SGRParseReturn             ret { Return::PARSE_SUCC, currentTextAttr };
 
     using ParseResult = SGRParseContext::ParseResult;
-
-    // TODO: optimize
     while ( !seqView.empty() ) {
-        if ( parseRet == SGRParseContext::ReturnVal::RETURN_ERROR_BREAK ) {
-            ret.first = Return::PARSE_ERROR;
-            break;
-        }
-
-        parseRet = ctx.parse( seqView );
-
+        // continuous parsing and logging of results at each step
+        ctxRet = ctx.parse( seqView );
         switch ( ctx.result() ) {
         case ParseResult::RESULT_FRONT_COLOR: {
-            ret.first        = Return::PARSE_SUCC;
-            ret.second.front = ctx.color();
+            ret.second.color.front = ctx.color();
         } break;
         case ParseResult::RESULT_BACK_COLOR: {
-            ret.second.back = ctx.color();
+            ret.second.color.back = ctx.color();
         } break;
         case ParseResult::RESULT_DEFAULT_FRONT_COLOR: {
-            ret.second.front = defaultColor_.front;
+            ret.second.color.front = defaultTextAttr_.color.front;
         } break;
         case ParseResult::RESULT_DEFAULT_BACK_COLOR: {
-            ret.second.back = defaultColor_.back;
+            ret.second.color.back = defaultTextAttr_.color.back;
         } break;
-        case ParseResult::RESULT_DEFAULT_COLOR: {
-            ret.second = defaultColor_;
+        case ParseResult::RESULT_DEFAULT_TEXT_ATTR: {
+            ret.second = defaultTextAttr_;
         } break;
-        case ParseResult::RESULT_CURRENT_COLOR: {
-            ret.second = currentColor;
+        case ParseResult::RESULT_CURRENT_TEXT_ATTR:
+        case ParseResult::RESULT_UNSUPPORTED_ATTR: {
+            ret.second = currentTextAttr;
         } break;
-        default: {
-            return { Return::PARSE_ERROR, currentColor };
-        }
         }
 
         ctx.reset();
+
+        // RETURN_ERROR_BREAK aborts parsing and invalidates parsed results
+        if ( ctxRet == SGRParseContext::ReturnVal::RETURN_ERROR_BREAK ) {
+            ret = { Return::PARSE_ERROR, currentTextAttr };
+            break;
+        }
     }
 
     return ret;

@@ -26,13 +26,13 @@ class SGRParseContext {
     };
 
     enum ParseResult {
-        RESULT_UNKNOWN_COLOR,
+        RESULT_UNSUPPORTED_ATTR,
         RESULT_FRONT_COLOR,
         RESULT_BACK_COLOR,
         RESULT_DEFAULT_FRONT_COLOR,
         RESULT_DEFAULT_BACK_COLOR,
-        RESULT_DEFAULT_COLOR,
-        RESULT_CURRENT_COLOR,
+        RESULT_DEFAULT_TEXT_ATTR,
+        RESULT_CURRENT_TEXT_ATTR,
     };
 
   private:
@@ -51,14 +51,15 @@ class SGRParseContext {
     };
 
   public:
-    explicit SGRParseContext();
+    SGRParseContext();
+    ~SGRParseContext() = default;
+
+    SGRParseContext( const SGRParseContext& )            = default;
+    SGRParseContext( SGRParseContext&& )                 = default;
+    SGRParseContext& operator=( const SGRParseContext& ) = default;
+    SGRParseContext& operator=( SGRParseContext&& )      = default;
 
     ReturnVal parse( std::string_view& seqs );
-
-    ReturnVal setFirstParameter( const std::string_view& num );
-    ReturnVal setColorVersion( const std::string_view& num );
-    ReturnVal setBit8Color( const std::string_view& num );
-    ReturnVal setBit24Color( const std::string_view& num );
 
     inline void reset()
     {
@@ -78,7 +79,12 @@ class SGRParseContext {
   private:
     SGRParseContext( ParseResult result, RGB rgb, ParseState s = STATE_WAIT_FIRST_PARAMETER );
 
-    static ReturnVal stringToParameter( const std::string_view& num, uint8_t& val );
+    ReturnVal stringToParameter( const std::string_view& in, uint8_t& out );
+
+    ReturnVal setFirstParameter( const std::string_view& num );
+    ReturnVal setColorVersion( const std::string_view& num );
+    ReturnVal setBit8Color( const std::string_view& num );
+    ReturnVal setBit24Color( const std::string_view& num );
 
   private:
     ParseResult result_;
@@ -143,19 +149,19 @@ class ColorTable {
         B_BRIGHT_WHITE   = 107,
     };
 
-  private:
-    static std::map<ColorIndex, SGRParseContext> colorTable;
-
   public:
     static SGRParseContext index( ColorIndex num )
     {
         auto ret = colorTable.find( num );
         if ( ret == colorTable.end() ) {
-            return { SGRParseContext::ParseResult::RESULT_UNKNOWN_COLOR, {},
+            return { SGRParseContext::ParseResult::RESULT_UNSUPPORTED_ATTR, {},
                 SGRParseContext::STATE_WAIT_FIRST_PARAMETER };
         }
         return ret->second;
     }
+
+  private:
+    static std::map<ColorIndex, SGRParseContext> colorTable;
 };
 
 } // namespace ANSI

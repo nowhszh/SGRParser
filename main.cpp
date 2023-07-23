@@ -94,19 +94,20 @@ struct ColorfulText {
 
 class ColorfulTextParser {
   private:
-    Color     currentColor_;
-    SGRParser sgrParser_;
+    TextAttribute currentTextAttr_;
+    SGRParser     sgrParser_;
 
   public:
-    explicit ColorfulTextParser( const Color& defaultColor, const Color& currentColor )
-        : currentColor_( currentColor )
-        , sgrParser_( defaultColor )
+    explicit ColorfulTextParser(
+        const TextAttribute& defaultAttr, const TextAttribute& currentAttr )
+        : currentTextAttr_( currentAttr )
+        , sgrParser_( defaultAttr )
     {
     }
 
-    inline Color currentColor()
+    [[nodiscard]] inline Color currentColor() const
     {
-        return currentColor_;
+        return currentTextAttr_.color;
     }
 
     std::vector<ColorfulText> parseColor( std::vector<std::string> strings )
@@ -125,7 +126,7 @@ class ColorfulTextParser {
         const std::vector<AnsiColorFilter::SGRSequence>& ansiSeqs, const std::string& string )
     {
         if ( ansiSeqs.empty() ) {
-            TextColorAttr desc { currentColor_, 0, string.size() };
+            TextColorAttr desc { currentTextAttr_.color, 0, string.size() };
             textList.emplace_back( ColorfulText { string, { desc } } );
             return;
         }
@@ -136,32 +137,32 @@ class ColorfulTextParser {
         ColorfulText textInfo { string };
 
         auto* curAnsi         = &ansiSeqs[ i ];
-        auto [ _, nextColor ] = sgrParser_.parseSGRSequence( currentColor_, curAnsi->second );
+        auto [ _, nextColor ] = sgrParser_.parseSGRSequence( currentTextAttr_, curAnsi->second );
         auto nextPos          = curAnsi->first;
         if ( curPos < nextPos ) {
-            TextColorAttr desc { currentColor_, 0, nextPos };
+            TextColorAttr desc { currentTextAttr_.color, 0, nextPos };
             textInfo.color.emplace_back( desc );
         }
-        currentColor_ = nextColor;
-        curPos        = nextPos;
+        currentTextAttr_ = nextColor;
+        curPos           = nextPos;
         (void)_;
 
         while ( i < ansiSeqs.size() ) {
             if ( i + 1 < ansiSeqs.size() ) {
                 curAnsi     = &ansiSeqs[ i + 1 ];
-                auto result = sgrParser_.parseSGRSequence( currentColor_, curAnsi->second );
+                auto result = sgrParser_.parseSGRSequence( currentTextAttr_, curAnsi->second );
                 nextColor   = result.second;
                 nextPos     = curAnsi->first;
             }
             else {
                 nextPos   = string.size();
-                nextColor = currentColor_;
+                nextColor = currentTextAttr_;
             }
 
-            TextColorAttr desc { currentColor_, curPos, nextPos - curPos };
+            TextColorAttr desc { currentTextAttr_.color, curPos, nextPos - curPos };
             textInfo.color.emplace_back( desc );
-            currentColor_ = nextColor;
-            curPos        = nextPos;
+            currentTextAttr_ = nextColor;
+            curPos           = nextPos;
             ++i;
         }
 
@@ -202,7 +203,7 @@ class MyWindow : public QMainWindow {
 
         // Text: description string and the color range
         // parse ansi color from string, then storage to Text
-        ColorfulTextParser        parser( defaultColor_, defaultColor_ );
+        ColorfulTextParser        parser( { defaultColor_ }, { defaultColor_ } );
         std::vector<ColorfulText> textList = parser.parseColor( vec );
 
         int y = initY;
