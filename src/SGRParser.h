@@ -25,22 +25,21 @@ struct TextAttribute {
 };
 
 class SGRParser {
-  public:
+public:
     using SGRParseReturn = std::pair<Return, TextAttribute>;
 
-  public:
-    explicit SGRParser( const TextAttribute& defaultTextAttr );
+public:
+    explicit SGRParser(const TextAttribute& defaultTextAttr);
     ~SGRParser() = default;
 
-    SGRParser( const SGRParser& )            = delete;
-    SGRParser( SGRParser&& )                 = delete;
-    SGRParser& operator=( const SGRParser& ) = delete;
-    SGRParser& operator=( SGRParser&& )      = delete;
+    SGRParser(const SGRParser&)            = delete;
+    SGRParser(SGRParser&&)                 = delete;
+    SGRParser& operator=(const SGRParser&) = delete;
+    SGRParser& operator=(SGRParser&&)      = delete;
 
-    SGRParseReturn parseSGRSequence(
-        const TextAttribute& currentTextAttr, const std::string& sequence );
+    SGRParseReturn parseSGRSequence(const TextAttribute& currentTextAttr, const std::string& sequence);
 
-  private:
+private:
     TextAttribute defaultTextAttr_;
 };
 
@@ -49,7 +48,7 @@ class ColorTable;
 class SGRParseContext {
     friend class ColorTable;
 
-  public:
+public:
     enum class ReturnVal {
         RETURN_SUCCESS_BREAK,
         RETURN_SUCCESS_CONTINUE,
@@ -68,7 +67,7 @@ class SGRParseContext {
         RESULT_CURRENT_TEXT_ATTR,
     };
 
-  private:
+private:
     enum class ColorVersion : uint8_t {
         BIT_8  = 5,
         BIT_24 = 2,
@@ -83,44 +82,34 @@ class SGRParseContext {
         STATE_WAIT_BIT_24_ARGS_B,
     };
 
-  public:
+public:
     SGRParseContext();
     ~SGRParseContext() = default;
 
-    SGRParseContext( const SGRParseContext& )            = default;
-    SGRParseContext( SGRParseContext&& )                 = default;
-    SGRParseContext& operator=( const SGRParseContext& ) = default;
-    SGRParseContext& operator=( SGRParseContext&& )      = default;
+    SGRParseContext(const SGRParseContext&)            = default;
+    SGRParseContext(SGRParseContext&&)                 = default;
+    SGRParseContext& operator=(const SGRParseContext&) = default;
+    SGRParseContext& operator=(SGRParseContext&&)      = default;
 
-    ReturnVal parse( std::string_view& seqs );
+    ReturnVal parse(std::string_view& seqs);
 
-    inline void reset()
-    {
-        new ( this ) SGRParseContext();
-    }
+    inline void reset() { new (this) SGRParseContext(); }
 
-    inline ParseResult result()
-    {
-        return result_;
-    }
+    inline ParseResult result() { return result_; }
 
-    inline RGB color()
-    {
-        return color_;
-    }
+    inline RGB color() { return color_; }
 
-  private:
-    SGRParseContext(
-        ParseResult result, RGB rgb, ParseState s = ParseState::STATE_WAIT_FIRST_PARAMETER );
+private:
+    SGRParseContext(ParseResult result, RGB rgb, ParseState s = ParseState::STATE_WAIT_FIRST_PARAMETER);
 
-    ReturnVal stringToParameter( const std::string_view& in, uint8_t& out );
+    ReturnVal stringToParameter(const std::string_view& in, uint8_t& out);
 
-    ReturnVal setFirstParameter( const std::string_view& num );
-    ReturnVal setColorVersion( const std::string_view& num );
-    ReturnVal setBit8Color( const std::string_view& num );
-    ReturnVal setBit24Color( const std::string_view& num );
+    ReturnVal setFirstParameter(const std::string_view& num);
+    ReturnVal setColorVersion(const std::string_view& num);
+    ReturnVal setBit8Color(const std::string_view& num);
+    ReturnVal setBit24Color(const std::string_view& num);
 
-  private:
+private:
     ParseResult result_;
     ParseState  state_;
     RGB         color_;
@@ -128,7 +117,7 @@ class SGRParseContext {
 };
 
 class ColorTable {
-  public:
+public:
     enum ColorIndex : uint8_t {
         RESET_DEFAULT = 0,
 
@@ -183,10 +172,10 @@ class ColorTable {
         B_BRIGHT_WHITE   = 107,
     };
 
-  public:
-    static SGRParseContext index( ColorIndex num );
+public:
+    static SGRParseContext index(ColorIndex num);
 
-  private:
+private:
     static std::map<ColorIndex, SGRParseContext> colorTable;
 };
 
