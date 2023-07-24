@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(ansi VERSION 0.1 LANGUAGES CXX)
+project(ANSIParser VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

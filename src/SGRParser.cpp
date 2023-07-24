@@ -11,7 +11,7 @@
 
 namespace ANSI {
 
-using ParseResult = SGRParseContext::ParseResult;
+using ParseResult = SGRParseCore::ParseResult;
 using ColorIndex  = ColorTable::ColorIndex;
 
 SGRParser::SGRParser(const TextAttribute& defaultTextAttr)
@@ -34,19 +34,19 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(const TextAttribute& curre
     std::string_view seqView(sequence);
     seqView.remove_prefix(HEAD_CNT);
 
-    SGRParseContext            ctx {};
-    SGRParseContext::ReturnVal ctxRet;
-    SGRParseReturn             ret { Return::PARSE_SUCC, currentTextAttr };
+    SGRParseCore            core {};
+    SGRParseCore::ReturnVal ctxRet;
+    SGRParseReturn          ret { Return::PARSE_SUCC, currentTextAttr };
 
     while (!seqView.empty()) {
         // continuous parsing and logging of results at each step
-        ctxRet = ctx.parse(seqView);
-        switch (ctx.result()) {
+        ctxRet = core.parse(seqView);
+        switch (core.result()) {
         case ParseResult::RESULT_FRONT_COLOR: {
-            ret.second.color.front = ctx.color();
+            ret.second.color.front = core.color();
         } break;
         case ParseResult::RESULT_BACK_COLOR: {
-            ret.second.color.back = ctx.color();
+            ret.second.color.back = core.color();
         } break;
         case ParseResult::RESULT_DEFAULT_FRONT_COLOR: {
             ret.second.color.front = defaultTextAttr_.color.front;
@@ -59,14 +59,15 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(const TextAttribute& curre
         } break;
         case ParseResult::RESULT_CURRENT_TEXT_ATTR:
         case ParseResult::RESULT_UNSUPPORTED_ATTR: {
-            ret.second = currentTextAttr;
+            // keep parsed attribute, do nothing
+            // ret.second = currentTextAttr;
         } break;
         }
 
-        ctx.reset();
+        core.reset();
 
         // RETURN_ERROR_BREAK aborts parsing and invalidates parsed results
-        if (ctxRet == SGRParseContext::ReturnVal::RETURN_ERROR_BREAK) {
+        if (ctxRet == SGRParseCore::ReturnVal::RETURN_ERROR_BREAK) {
             ret = { Return::PARSE_ERROR, currentTextAttr };
             break;
         }
@@ -106,7 +107,7 @@ std::pair<ConvertRet, uint8_t> base10ToU8(const std::string_view& num)
     return { ConvertRet::NOT_NUM, {} };
 }
 
-SGRParseContext::SGRParseContext()
+SGRParseCore::SGRParseCore()
     : result_(ParseResult::RESULT_CURRENT_TEXT_ATTR)
     , state_(ParseState::STATE_WAIT_FIRST_PARAMETER)
     , color_()
@@ -114,7 +115,7 @@ SGRParseContext::SGRParseContext()
 {
 }
 
-SGRParseContext::SGRParseContext(ParseResult result, RGB rgb, ParseState s)
+SGRParseCore::SGRParseCore(ParseResult result, RGB rgb, ParseState s)
     : result_(result)
     , state_(s)
     , color_(rgb)
@@ -122,7 +123,7 @@ SGRParseContext::SGRParseContext(ParseResult result, RGB rgb, ParseState s)
 {
 }
 
-SGRParseContext::ReturnVal SGRParseContext::stringToParameter(const std::string_view& in, uint8_t& out)
+SGRParseCore::ReturnVal SGRParseCore::stringToParameter(const std::string_view& in, uint8_t& out)
 {
     auto [ret, value] = base10ToU8(in);
     // not number parse break, keep current text attribute
@@ -139,7 +140,7 @@ SGRParseContext::ReturnVal SGRParseContext::stringToParameter(const std::string_
     return ReturnVal::RETURN_SUCCESS_CONTINUE;
 }
 
-SGRParseContext::ReturnVal SGRParseContext::setFirstParameter(const std::string_view& num)
+SGRParseCore::ReturnVal SGRParseCore::setFirstParameter(const std::string_view& num)
 {
     // in the first parameter, the default value is 0, which will reset all text attributes.
     if (num.empty()) {
@@ -164,7 +165,7 @@ SGRParseContext::ReturnVal SGRParseContext::setFirstParameter(const std::string_
                                                              : ReturnVal::RETURN_SUCCESS_CONTINUE);
 }
 
-SGRParseContext::ReturnVal SGRParseContext::setColorVersion(const std::string_view& num)
+SGRParseCore::ReturnVal SGRParseCore::setColorVersion(const std::string_view& num)
 {
     // before version parameter is 38, empty parameter will reset parse state, and use last color
     if (num.empty()) {
@@ -194,7 +195,7 @@ SGRParseContext::ReturnVal SGRParseContext::setColorVersion(const std::string_vi
     return ReturnVal::RETURN_SUCCESS_CONTINUE;
 }
 
-SGRParseContext::ReturnVal SGRParseContext::setBit8Color(const std::string_view& num)
+SGRParseCore::ReturnVal SGRParseCore::setBit8Color(const std::string_view& num)
 {
     // 8-bit color parameter empty, will use last color, then parse continue
     if (num.empty()) {
@@ -210,7 +211,7 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color(const std::string_view&
 
     // reference: https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
     // Standard colors
-    if (value >= 0 && value <= 7) {
+    if (value <= 7) {
         // storage result color position, after index color, recover it
         auto result = result_;
         *this       = ColorTable::index(ColorTable::ColorIndex(ColorTable::F_BLACK + value));
@@ -224,7 +225,7 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color(const std::string_view&
         result_     = result;
     }
     // Grayscale colors
-    else if (value >= 232 && value <= 255) {
+    else if (value >= 232) {
         auto colorValue = uint8_t((value - 232) * 10 + 8);
         color_.r        = colorValue;
         color_.g        = colorValue;
@@ -245,7 +246,7 @@ SGRParseContext::ReturnVal SGRParseContext::setBit8Color(const std::string_view&
     return ReturnVal::RETURN_SUCCESS_BREAK;
 }
 
-SGRParseContext::ReturnVal SGRParseContext::setBit24Color(const std::string_view& num)
+SGRParseCore::ReturnVal SGRParseCore::setBit24Color(const std::string_view& num)
 {
     if (num.empty()) {
         // if bit24 color parameter empty, all the 24bit color parameters are invalid.
@@ -291,7 +292,7 @@ SGRParseContext::ReturnVal SGRParseContext::setBit24Color(const std::string_view
     }
 }
 
-SGRParseContext::ReturnVal SGRParseContext::parse(std::string_view& seqs)
+SGRParseCore::ReturnVal SGRParseCore::parse(std::string_view& seqs)
 {
     auto      pos = seqs.find_first_of(";:m");
     ReturnVal parseRet;
@@ -331,7 +332,7 @@ SGRParseContext::ReturnVal SGRParseContext::parse(std::string_view& seqs)
 // reference: https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
 // {index, {result, color, state}}
 // If it is a valid color, state must be STATE_WAIT_FIRST_PARAMETER
-std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
+std::map<ColorIndex, SGRParseCore> ColorTable::colorTable {
     // reset to default
     { ColorIndex::RESET_DEFAULT, { ParseResult::RESULT_DEFAULT_TEXT_ATTR, {} } },
 
@@ -347,7 +348,7 @@ std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
 
     // custom front color
     { ColorIndex::F_CUSTOM_COLOR,
-        { ParseResult::RESULT_FRONT_COLOR, {}, SGRParseContext::ParseState::STATE_WAIT_VERSION } },
+      { ParseResult::RESULT_FRONT_COLOR, {}, SGRParseCore::ParseState::STATE_WAIT_VERSION } },
 
     // default front color
     { ColorIndex::F_DEFAULT_COLOR, { ParseResult::RESULT_DEFAULT_FRONT_COLOR, {} } },
@@ -364,7 +365,7 @@ std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
 
     // custom back color
     { ColorIndex::B_CUSTOM_COLOR,
-        { ParseResult::RESULT_BACK_COLOR, {}, SGRParseContext::ParseState::STATE_WAIT_VERSION } },
+      { ParseResult::RESULT_BACK_COLOR, {}, SGRParseCore::ParseState::STATE_WAIT_VERSION } },
 
     // default front color
     { ColorIndex::B_DEFAULT_COLOR, { ParseResult::RESULT_DEFAULT_BACK_COLOR, {} } },
@@ -390,12 +391,13 @@ std::map<ColorIndex, SGRParseContext> ColorTable::colorTable {
     { ColorIndex::B_BRIGHT_WHITE, { ParseResult::RESULT_BACK_COLOR, { 255, 255, 255 } } },
 };
 
-SGRParseContext ColorTable::index(ColorIndex num)
+SGRParseCore ColorTable::index(ColorIndex num)
 {
     auto ret = colorTable.find(num);
     if (ret == colorTable.end()) {
-        return { SGRParseContext::ParseResult::RESULT_UNSUPPORTED_ATTR, {},
-            SGRParseContext ::ParseState::STATE_WAIT_FIRST_PARAMETER };
+        return { SGRParseCore::ParseResult::RESULT_UNSUPPORTED_ATTR,
+                 {},
+                 SGRParseCore ::ParseState::STATE_WAIT_FIRST_PARAMETER };
     }
     return ret->second;
 }
