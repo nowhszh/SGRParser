@@ -37,6 +37,13 @@ public:
     SGRParser& operator=(const SGRParser&) = delete;
     SGRParser& operator=(SGRParser&&)      = delete;
 
+    /*
+     * @param currentTextAttr   Properties of the current text
+     * @param sequence          SGR sequence, example: "\033[31m"
+     * @return                  {return value, parsed text attribute}
+     *
+     * If the return value is ERROR, the parsed value is still guaranteed to be valid.
+     */
     SGRParseReturn parseSGRSequence(const TextAttribute& currentTextAttr, const std::string& sequence);
 
 private:
@@ -45,7 +52,7 @@ private:
 
 class ColorTable;
 
-class SGRParseContext {
+class SGRParseCore {
     friend class ColorTable;
 
 public:
@@ -83,24 +90,24 @@ private:
     };
 
 public:
-    SGRParseContext();
-    ~SGRParseContext() = default;
+    SGRParseCore();
+    ~SGRParseCore() = default;
 
-    SGRParseContext(const SGRParseContext&)            = default;
-    SGRParseContext(SGRParseContext&&)                 = default;
-    SGRParseContext& operator=(const SGRParseContext&) = default;
-    SGRParseContext& operator=(SGRParseContext&&)      = default;
+    SGRParseCore(const SGRParseCore&)            = default;
+    SGRParseCore(SGRParseCore&&)                 = default;
+    SGRParseCore& operator=(const SGRParseCore&) = default;
+    SGRParseCore& operator=(SGRParseCore&&)      = default;
 
     ReturnVal parse(std::string_view& seqs);
 
-    inline void reset() { new (this) SGRParseContext(); }
+    inline void reset() { new (this) SGRParseCore(); }
 
     inline ParseResult result() { return result_; }
 
     inline RGB color() { return color_; }
 
 private:
-    SGRParseContext(ParseResult result, RGB rgb, ParseState s = ParseState::STATE_WAIT_FIRST_PARAMETER);
+    SGRParseCore(ParseResult result, RGB rgb, ParseState s = ParseState::STATE_WAIT_FIRST_PARAMETER);
 
     ReturnVal stringToParameter(const std::string_view& in, uint8_t& out);
 
@@ -173,10 +180,10 @@ public:
     };
 
 public:
-    static SGRParseContext index(ColorIndex num);
+    static SGRParseCore index(ColorIndex num);
 
 private:
-    static std::map<ColorIndex, SGRParseContext> colorTable;
+    static std::map<ColorIndex, SGRParseCore> colorTable;
 };
 
 }

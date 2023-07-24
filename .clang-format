@@ -16,12 +16,12 @@ AlignConsecutiveAssignments:
 AlignConsecutiveMacros:
   Enabled: true
   AcrossEmptyLines: true
-  AcrossComments: false
+  AcrossComments: true
 
 AlignConsecutiveBitFields:
   Enabled: true
   AcrossEmptyLines: true
-  AcrossComments: false
+  AcrossComments: true
 
 AlignConsecutiveDeclarations:
   Enabled: true
@@ -32,3 +32,6 @@ AllowShortFunctionsOnASingleLine: Inline
 AllowAllParametersOfDeclarationOnNextLine: true
 Cpp11BracedListStyle: false
 AlwaysBreakTemplateDeclarations: Yes
+
+AlignAfterOpenBracket: true
+AlignTrailingComments: true
