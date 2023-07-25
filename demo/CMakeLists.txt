@@ -15,13 +15,15 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
 
-set(ansi_dir ${CMAKE_SOURCE_DIR}/src)
+set(SGR_DIR ${CMAKE_SOURCE_DIR}/src)
 
 
 set(PROJECT_SOURCES
-        ${ansi_dir}/ANSI.h
-        ${ansi_dir}/SGRParser.h
-        ${ansi_dir}/SGRParser.cpp
+        ${SGR_DIR}/ANSI.h
+        ${SGR_DIR}/SGRParser.h
+        ${SGR_DIR}/SGRParser.cpp
+        ColorfulTextParser.h
+        ColorfulTextParser.cpp
         demo.cpp
         )
 
