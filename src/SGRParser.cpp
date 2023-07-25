@@ -15,7 +15,7 @@ using ParseResult = SGRParseCore::ParseResult;
 using ColorIndex  = ColorTable::ColorIndex;
 
 SGRParser::SGRParser(const TextAttribute& defaultTextAttr)
-    : defaultTextAttr_ { defaultTextAttr }
+    : defaultTextAttr_ { TextAttribute::State::DEFAULT, defaultTextAttr.color }
 {
 }
 
@@ -43,9 +43,11 @@ SGRParser::SGRParseReturn SGRParser::parseSGRSequence(const TextAttribute& curre
         ctxRet = core.parse(seqView);
         switch (core.result()) {
         case ParseResult::RESULT_FRONT_COLOR: {
+            ret.second.state       = TextAttribute::State::CUSTOM;
             ret.second.color.front = core.color();
         } break;
         case ParseResult::RESULT_BACK_COLOR: {
+            ret.second.state      = TextAttribute::State::CUSTOM;
             ret.second.color.back = core.color();
         } break;
         case ParseResult::RESULT_DEFAULT_FRONT_COLOR: {

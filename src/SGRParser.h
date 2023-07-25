@@ -21,6 +21,12 @@ struct Color {
 };
 
 struct TextAttribute {
+    enum class State {
+        DEFAULT,
+        CUSTOM,
+    };
+
+    State state;
     Color color;
 };
 
