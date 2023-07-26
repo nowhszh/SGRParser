@@ -43,13 +43,18 @@ public:
 public:
     explicit ColorfulTextParser(const ANSI::TextAttribute& defaultAttr, const ANSI::TextAttribute& currentAttr);
 
-    std::vector<ColorfulText> parse(QString strings, Mode mode = Mode::ALL_TEXT);
+    // QString
+    ColorfulText parse(QString strings, Mode mode = Mode::ALL_TEXT);
 
-    std::vector<ColorfulText> parse(std::string strings, Mode mode = Mode::ALL_TEXT);
+    std::vector<ColorfulText> parse(const std::vector<QString>& strings, Mode mode = Mode::ALL_TEXT);
+
+    // std::string
+    ColorfulText parse(std::string strings, Mode mode = Mode::ALL_TEXT);
 
     std::vector<ColorfulText> parse(const std::vector<std::string>& strings, Mode mode = Mode::ALL_TEXT);
 
 private:
+    // std::string
     void markedStringToText(std::vector<ColorfulText>& textList, const std::vector<CSIFilter::SGRSequence>& sgrSeqs,
                             std::string&& string);
     void allStringToText(std::vector<ColorfulText>& textList, const std::vector<CSIFilter::SGRSequence>& sgrSeqs,
