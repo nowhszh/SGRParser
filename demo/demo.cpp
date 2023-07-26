@@ -15,6 +15,7 @@ using namespace ANSI;
 
 // test ansi sequence
 std::vector<std::string> vec {
+    "\033[31mhe\033[0mll\033[32mo\033[m",
     "hello",
     // 3/4-bit colors
     "\033[31mhello\033[0m",
@@ -77,7 +78,14 @@ public:
 
         // Text: description string and the color range
         // parse ansi color from string, then storage to Text
-        ColorfulTextParser        parser({ defaultColor_ }, { defaultColor_ });
+        ColorfulTextParser parser({ TextAttribute::State::DEFAULT, defaultColor_ },
+                                  { TextAttribute::State::DEFAULT, defaultColor_ });
+        //        std::vector<ColorfulText> textList;
+        //        for (auto& str : vec) {
+        //            auto ret = parser.parse({ str.c_str(), str.size() }, ColorfulTextParser::Mode::MARKED_TEXT);
+        //            textList.emplace_back(ret);
+        //        }
+
         std::vector<ColorfulText> textList = parser.parse(vec);
 
         int y = initY;
@@ -85,17 +93,19 @@ public:
             auto& string = text.text;
             int   x      = initX;
 
+            int testWidth = painter.fontMetrics().horizontalAdvance(QString(string.c_str()));
+            maxTextWidth  = testWidth > maxTextWidth ? testWidth : maxTextWidth;
             for (auto& textColor : text.color) {
                 auto substr = string.substr(textColor.start, textColor.len);
 
                 // record max string width
-                int width    = painter.fontMetrics().horizontalAdvance(QString(substr.c_str()));
-                maxTextWidth = width > maxTextWidth ? width : maxTextWidth;
 
                 auto& front = textColor.color.front;
                 auto& back  = textColor.color.back;
                 qDebug() << "front:" << front;
                 qDebug() << "back:" << back;
+
+                int width = painter.fontMetrics().horizontalAdvance(QString(substr.c_str()));
 
                 // draw background
                 auto backColor = QColor(back.r, back.g, back.b);

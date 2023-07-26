@@ -17,7 +17,7 @@ std::vector<CSIFilter::SGRSequence> CSIFilter::filter(std::string& stdText)
 
     std::vector<SGRSequence> ansiSeqs = filter(text);
 
-    stdText = std::move(text.toStdString());
+    stdText = text.toStdString();
     return ansiSeqs;
 }
 
@@ -48,7 +48,7 @@ ColorfulTextParser::ColorfulTextParser(const ANSI::TextAttribute& defaultAttr, c
 {
 }
 
-std::vector<ColorfulText> ColorfulTextParser::parse(QString string, Mode mode)
+ColorfulText ColorfulTextParser::parse(QString string, Mode mode)
 {
     std::vector<ColorfulText> textList;
     auto                      sgrSeqs = CSIFilter::filter(string);
@@ -61,10 +61,27 @@ std::vector<ColorfulText> ColorfulTextParser::parse(QString string, Mode mode)
         markedStringToText(textList, sgrSeqs, std::move(stdStr));
     }
 
+    return textList.front();
+}
+
+std::vector<ColorfulText> ColorfulTextParser::parse(const std::vector<QString>& strings, ColorfulTextParser::Mode mode)
+{
+    std::vector<ColorfulText> textList;
+    for (auto string : strings) {
+        auto        sgrSeqs = CSIFilter::filter(string);
+        const auto& bytes   = string.toUtf8();
+        std::string stdStr { bytes.constData(), (size_t)bytes.size() };
+        if (mode == Mode::ALL_TEXT) {
+            allStringToText(textList, sgrSeqs, std::move(stdStr));
+        }
+        else if (mode == Mode::MARKED_TEXT) {
+            markedStringToText(textList, sgrSeqs, std::move(stdStr));
+        }
+    }
     return textList;
 }
 
-std::vector<ColorfulText> ColorfulTextParser::parse(std::string string, Mode mode)
+ColorfulText ColorfulTextParser::parse(std::string string, Mode mode)
 {
     std::vector<ColorfulText> textList;
     auto                      sgrSeqs = CSIFilter::filter(string);
@@ -74,7 +91,7 @@ std::vector<ColorfulText> ColorfulTextParser::parse(std::string string, Mode mod
     else if (mode == Mode::MARKED_TEXT) {
         markedStringToText(textList, sgrSeqs, std::move(string));
     }
-    return textList;
+    return textList.front();
 }
 
 std::vector<ColorfulText> ColorfulTextParser::parse(const std::vector<std::string>& strings, Mode mode)
@@ -108,35 +125,37 @@ void ColorfulTextParser::markedStringToText(std::vector<ColorfulText>&          
         return;
     }
 
+    // get first colorful text pos and attribute
     auto firstResult = sgrParser_.parseSGRSequence(currentTextAttr_, sgrSeqs[0].second);
     auto curPos      = sgrSeqs[0].first;
     auto curTextAttr = firstResult.second;
 
     for (size_t i = 0; i < sgrSeqs.size(); ++i) {
+        // if exist next colorful text , parse sequence
+        // else set next pos to string end
         size_t                nextPos;
         decltype(curTextAttr) nextTextAttr;
         if (i + 1 < sgrSeqs.size()) {
-            auto result  = sgrParser_.parseSGRSequence(currentTextAttr_, sgrSeqs[i + 1].second);
+            auto result  = sgrParser_.parseSGRSequence(curTextAttr, sgrSeqs[i + 1].second);
             nextPos      = sgrSeqs[i + 1].first;
             nextTextAttr = result.second;
         }
         else {
             nextPos      = string.size();
-            nextTextAttr = currentTextAttr_;
+            nextTextAttr = curTextAttr;
         }
 
         if (curTextAttr.state == TextAttribute::State::CUSTOM) {
-            TextColorAttr desc { curTextAttr.color, curPos, nextPos };
+            TextColorAttr desc { curTextAttr.color, curPos, nextPos - curPos };
             colors.emplace_back(desc);
-            currentTextAttr_ = curTextAttr;
         }
 
         curPos      = nextPos;
         curTextAttr = nextTextAttr;
     }
+    currentTextAttr_ = curTextAttr;
 }
 
-// TODO: to optimize, may be exist some bugs
 void ColorfulTextParser::allStringToText(std::vector<ColorfulText>&                 textList,
                                          const std::vector<CSIFilter::SGRSequence>& sgrSeqs, std::string&& string)
 {
@@ -151,39 +170,38 @@ void ColorfulTextParser::allStringToText(std::vector<ColorfulText>&             
         return;
     }
 
-    size_t curPos = 0;
-    size_t i      = 0;
+    size_t curPos      = 0;
+    auto   curTextAttr = currentTextAttr_;
 
     // first text push back
-    auto* curSequence      = &sgrSeqs[i];
-    auto [_, nextTextAttr] = sgrParser_.parseSGRSequence(currentTextAttr_, curSequence->second);
-    auto nextPos           = curSequence->first;
+    auto firstResult  = sgrParser_.parseSGRSequence(curTextAttr, sgrSeqs[0].second);
+    auto nextPos      = sgrSeqs[0].first;
+    auto nextTextAttr = firstResult.second;
     if (curPos < nextPos) {
-        TextColorAttr desc { currentTextAttr_.color, curPos, nextPos - curPos };
+        TextColorAttr desc { curTextAttr.color, curPos, nextPos - curPos };
         colors.emplace_back(desc);
     }
-    (void)_;
 
     // update context
-    currentTextAttr_ = nextTextAttr;
-    curPos           = nextPos;
+    curPos      = nextPos;
+    curTextAttr = nextTextAttr;
 
-    while (i < sgrSeqs.size()) {
+    for (size_t i = 0; i < sgrSeqs.size(); ++i) {
         if (i + 1 < sgrSeqs.size()) {
-            curSequence  = &sgrSeqs[i + 1];
-            auto result  = sgrParser_.parseSGRSequence(currentTextAttr_, curSequence->second);
-            nextPos      = curSequence->first;
+            auto result  = sgrParser_.parseSGRSequence(curTextAttr, sgrSeqs[i + 1].second);
+            nextPos      = sgrSeqs[i + 1].first;
             nextTextAttr = result.second;
         }
         else {
             nextPos      = string.size();
-            nextTextAttr = currentTextAttr_;
+            nextTextAttr = curTextAttr;
         }
 
-        TextColorAttr desc { currentTextAttr_.color, curPos, nextPos - curPos };
+        TextColorAttr desc { curTextAttr.color, curPos, nextPos - curPos };
         colors.emplace_back(desc);
-        currentTextAttr_ = nextTextAttr;
-        curPos           = nextPos;
-        ++i;
+
+        curPos      = nextPos;
+        curTextAttr = nextTextAttr;
     }
+    currentTextAttr_ = curTextAttr;
 }
