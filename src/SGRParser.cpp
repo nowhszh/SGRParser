@@ -255,26 +255,6 @@ SGRParseCore::ReturnVal SGRParseCore::setBit24Color(const std::string_view& num)
         bit24Valid_ = false;
     }
 
-    decltype(color_.r)* colorVal;
-
-    switch (state_) {
-    case ParseState::STATE_WAIT_BIT_24_ARGS_R: {
-        colorVal = &color_.r;
-        state_   = ParseState::STATE_WAIT_BIT_24_ARGS_G;
-    } break;
-    case ParseState::STATE_WAIT_BIT_24_ARGS_G: {
-        colorVal = &color_.g;
-        state_   = ParseState::STATE_WAIT_BIT_24_ARGS_B;
-    } break;
-    case ParseState::STATE_WAIT_BIT_24_ARGS_B: {
-        colorVal = &color_.b;
-        state_   = ParseState::STATE_WAIT_FIRST_PARAMETER;
-    } break;
-    default:
-        // If the code is not written correctly, it will go here
-        assert(false);
-    }
-
     // bit24Valid is false, no need to convert num and set color
     if (bit24Valid_) {
         uint8_t value;
@@ -282,15 +262,41 @@ SGRParseCore::ReturnVal SGRParseCore::setBit24Color(const std::string_view& num)
         if (ret != ReturnVal::RETURN_SUCCESS_CONTINUE) {
             return ret;
         }
-        *colorVal = value;
+        setBit24ColorValue(value);
 
         // if state is STATE_WAIT_FIRST_PARAMETER, exist color, so break
         return (state_ == ParseState::STATE_WAIT_FIRST_PARAMETER ? ReturnVal::RETURN_SUCCESS_BREAK
                                                                  : ReturnVal::RETURN_SUCCESS_CONTINUE);
     }
     else {
-        state_ = ParseState::STATE_WAIT_FIRST_PARAMETER;
+        setBit24ColorValue(0);
+        // restore state after ignoring invalid parameters
+        if (state_ == ParseState::STATE_WAIT_FIRST_PARAMETER) {
+            bit24Valid_ = true;
+        }
         return ReturnVal::RETURN_ERROR_CONTINUE;
+    }
+}
+
+// save color value and change state
+void SGRParseCore::setBit24ColorValue(uint8_t num)
+{
+    switch (state_) {
+    case ParseState::STATE_WAIT_BIT_24_ARGS_R: {
+        color_.r = num;
+        state_   = ParseState::STATE_WAIT_BIT_24_ARGS_G;
+    } break;
+    case ParseState::STATE_WAIT_BIT_24_ARGS_G: {
+        color_.g = num;
+        state_   = ParseState::STATE_WAIT_BIT_24_ARGS_B;
+    } break;
+    case ParseState::STATE_WAIT_BIT_24_ARGS_B: {
+        color_.b = num;
+        state_   = ParseState::STATE_WAIT_FIRST_PARAMETER;
+    } break;
+    default:
+        // If the code is not written correctly, it will go here
+        assert(false);
     }
 }
 
