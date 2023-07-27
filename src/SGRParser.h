@@ -121,6 +121,7 @@ private:
     ReturnVal setColorVersion(const std::string_view& num);
     ReturnVal setBit8Color(const std::string_view& num);
     ReturnVal setBit24Color(const std::string_view& num);
+    void      setBit24ColorValue(uint8_t num);
 
 private:
     ParseResult result_;
